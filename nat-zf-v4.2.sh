@@ -1226,19 +1226,17 @@ rule_traffic_summary_by_id() {
 
 print_rules_table() {
   load_interfaces
-  printf "%-4s %-24s %-21s %-14s %-18s %-8s %-10s %-10s %-10s %-15s %-14s\n" \
-    "编号" "客户入口UDP(公网优先)" "服务端UDP" "出口源IP" "限速" "UDP状态" "返回流量" "去目标流量" "总流量" "下一跳" "备注"
-  subline 164
+  printf "%-4s %-24s %-21s %-14s %-18s %-8s %-10s %-10s %-10s %-14s\n" \
+    "编号" "客户入口UDP(公网优先)" "服务端UDP" "出口源IP" "限速" "UDP状态" "返回流量" "去目标流量" "总流量" "备注"
+  subline 148
   local found=0
   while IFS='|' read -r id bind_ip listen_port target_ip target_port snat_ip remark _; do
     [[ -n "${id:-}" ]] || continue
     found=1
 
-    local udp_status route_fields dev via src route traffic_summary up_bytes down_bytes total_bytes
-    local entry_col target_col egress_col limit_col via_col remark_col
+    local udp_status traffic_summary up_bytes down_bytes total_bytes
+    local entry_col target_col egress_col limit_col remark_col
     udp_status="$(rule_status_by_id "$id")"
-    route_fields="$(get_route_fields "$snat_ip" "$target_ip")"
-    IFS='|' read -r dev via src route <<< "$route_fields"
     traffic_summary="$(rule_traffic_summary_by_id "$id")"
     IFS='|' read -r up_bytes down_bytes total_bytes <<< "$traffic_summary"
 
@@ -1246,13 +1244,11 @@ print_rules_table() {
     target_col="$(truncate_text "${target_ip}:${target_port}" 21)"
     egress_col="$(truncate_text "$(format_egress_for_table "$bind_ip" "$snat_ip")" 14)"
     limit_col="$(truncate_text "$(limit_text_for_port "$listen_port")" 18)"
-    via_col="$(truncate_text "${via:-直连}" 15)"
     remark_col="$(truncate_text "${remark:--}" 14)"
 
-    printf "%-4s %-24s %-21s %-14s %-18s %-8s %-10s %-10s %-10s %-15s %-14s\n" \
+    printf "%-4s %-24s %-21s %-14s %-18s %-8s %-10s %-10s %-10s %-14s\n" \
       "$id" "$entry_col" "$target_col" "$egress_col" "$limit_col" "$udp_status" \
-      "$(format_bytes "$up_bytes")" "$(format_bytes "$down_bytes")" "$(format_bytes "$total_bytes")" \
-      "$via_col" "$remark_col"
+      "$(format_bytes "$up_bytes")" "$(format_bytes "$down_bytes")" "$(format_bytes "$total_bytes")" "$remark_col"
   done < "$RULES_FILE"
   if [[ $found -eq 0 ]]; then
     echo "暂无规则"
